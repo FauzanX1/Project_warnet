@@ -1,0 +1,362 @@
+#include <iostream>
+#include <string>
+#include <fstream>
+#include <iomanip>
+#include <algorithm>
+using namespace std;
+
+// Konstanta dan variabel global
+const int max_komputer = 35;           // Maksimal komputer
+const int max_pelanggan = 100;          // Maksimal pelanggan
+const int tarif_per_jam = 5000;         // Tarif per jam dalam rupiah
+const string admin_user = "admin";       // Username admin
+const string admin_pass = "12345";       // Password admin
+
+// Struktur data komputer
+struct komputer {
+    string id;
+    bool tersedia = true;  // Status komputer, true = tersedia
+};
+
+// Struktur data pelanggan
+struct pelanggan {
+    string nama;
+    string id;
+    string idKomputer;
+    int jamMasuk;
+    int menitMasuk;
+    int jamKeluar;
+    int menitKeluar;
+    int durasiMenit;   // Durasi penggunaan dalam menit
+    int biaya;         // Biaya yang harus dibayar
+};
+
+// Array dan counter data
+komputer daftarKomputer[max_komputer];
+pelanggan daftarPelanggan[max_pelanggan];
+int jumlahKomputer = 0, jumlahPelanggan = 0;
+
+// Fungsi menyimpan data pelanggan ke file "data.txt"
+void simpanFile() {
+    ofstream file("data.txt");
+    for (int i = 0; i < jumlahPelanggan; i++) {
+        file << daftarPelanggan[i].id << " "
+             << daftarPelanggan[i].nama << " "
+             << daftarPelanggan[i].idKomputer << " "
+             << daftarPelanggan[i].jamMasuk << " "
+             << daftarPelanggan[i].menitMasuk << " "
+             << daftarPelanggan[i].jamKeluar << " "
+             << daftarPelanggan[i].menitKeluar << " "
+             << daftarPelanggan[i].durasiMenit << " "
+             << daftarPelanggan[i].biaya << endl;
+    }
+    file.close();
+    cout << "Data berhasil disimpan ke file.\n";
+}
+
+// Fungsi membaca data pelanggan dari file "data.txt"
+void bacaFile() {
+    ifstream file("data.txt");
+    pelanggan P;
+    jumlahPelanggan = 0;
+    // Membaca data pelanggan selama masih ada baris di file
+    while (file >> P.id >> P.nama >> P.idKomputer 
+                >> P.jamMasuk >> P.menitMasuk 
+                >> P.jamKeluar >> P.menitKeluar
+                >> P.durasiMenit >> P.biaya) {
+        daftarPelanggan[jumlahPelanggan++] = P;
+    }
+    file.close();
+}
+
+// Fungsi login admin dengan username dan password tetap
+bool login() {
+    string user, pass;
+    cout << "Login Admin\nUsername: "; cin >> user;
+    cout << "Password: "; cin >> pass;
+    return (user == admin_user && pass == admin_pass);
+}
+
+// Fungsi mengecek apakah ID pelanggan sudah terpakai
+bool idTerpakai(const string& id) {
+    for (int i = 0; i < jumlahPelanggan; i++) {
+        if (daftarPelanggan[i].id == id) return true;
+    }
+    return false;
+}
+
+// Fungsi input waktu dengan validasi jam dan menit
+void inputWaktu(int &jam, int &menit, const string& label) {
+    do {
+        cout << label << " Jam (0-23): ";
+        cin >> jam;
+        if (jam < 0 || jam > 23) cout << "Jam harus 0 sampai 23.\n";
+    } while (jam < 0 || jam > 23);
+
+    do {
+        cout << label << " Menit (0-59): ";
+        cin >> menit;
+        if (menit < 0 || menit > 59) cout << "Menit harus 0 sampai 59.\n";
+    } while (menit < 0 || menit > 59);
+}
+
+// Fungsi menghitung durasi penggunaan dalam menit
+int hitungDurasiMenit(int jamMasuk, int menitMasuk, int jamKeluar, int menitKeluar) {
+    int masukTotal = jamMasuk * 60 + menitMasuk;
+    int keluarTotal = jamKeluar * 60 + menitKeluar;
+
+    int durasi = keluarTotal - masukTotal;
+    // Jika keluar lebih awal dari masuk (misal lewat tengah malam), tambahkan 24 jam
+    if (durasi <= 0) durasi += 24 * 60;
+
+    return durasi;
+}
+
+// Fungsi menghitung biaya berdasarkan durasi (dalam menit)
+int hitungBiaya(int durasiMenit, int tarifPerJam = tarif_per_jam) {
+    if (durasiMenit <= 0) return 0;
+    double tarifPerMenit = tarifPerJam / 60.0; // Tarif per menit
+    return static_cast<int>(tarifPerMenit * durasiMenit);
+}
+
+// Fungsi menambah data pelanggan baru
+void tambahPelanggan() {
+    if (jumlahPelanggan >= max_pelanggan) {
+        cout << "Data pelanggan penuh.\n";
+        return;
+    }
+
+    pelanggan P;
+    cout << "Nama: "; cin >> P.nama;
+    cout << "ID: "; cin >> P.id;
+
+    if (idTerpakai(P.id)) {
+        cout << "ID sudah digunakan, coba ID lain.\n";
+        return;
+    }
+
+    cout << "ID Komputer: "; cin >> P.idKomputer;
+
+    // Input jam dan menit masuk dan keluar dengan validasi
+    inputWaktu(P.jamMasuk, P.menitMasuk, "Jam Masuk");
+    inputWaktu(P.jamKeluar, P.menitKeluar, "Jam Keluar");
+
+    // Hitung durasi dan biaya
+    P.durasiMenit = hitungDurasiMenit(P.jamMasuk, P.menitMasuk, P.jamKeluar, P.menitKeluar);
+    P.biaya = hitungBiaya(P.durasiMenit);
+
+    daftarPelanggan[jumlahPelanggan++] = P;
+    cout << "Data pelanggan berhasil ditambahkan.\n";
+
+    // Simpan data setelah penambahan
+    simpanFile();
+}
+
+// Fungsi menampilkan seluruh data pelanggan dalam tabel
+void tampilkanPelanggan() {
+    if (jumlahPelanggan == 0) {
+        cout << "Belum ada data pelanggan.\n";
+        return;
+    }
+
+    cout << "\nDaftar Pelanggan:\n";
+    cout << left << setw(5) << "No"
+         << setw(10) << "ID"
+         << setw(15) << "Nama"
+         << setw(12) << "Komputer"
+         << setw(8)  << "Durasi"
+         << setw(10) << "Biaya" << endl;
+
+    cout << string(60, '-') << endl;
+
+    for (int i = 0; i < jumlahPelanggan; i++) {
+        cout << setw(5)  << i + 1
+             << setw(10) << daftarPelanggan[i].id
+             << setw(15) << daftarPelanggan[i].nama
+             << setw(12) << daftarPelanggan[i].idKomputer
+             << setw(8)  << daftarPelanggan[i].durasiMenit
+             << setw(10) << daftarPelanggan[i].biaya << endl;
+    }
+}
+
+// Fungsi mencari pelanggan berdasarkan ID
+void cariPelangganID(string id) {
+    bool ditemukan = false;
+    for (int i = 0; i < jumlahPelanggan; i++) {
+        if (daftarPelanggan[i].id == id) {
+            cout << "Ditemukan: " << daftarPelanggan[i].nama << ", Biaya: " << daftarPelanggan[i].biaya << endl;
+            ditemukan = true;
+            break;
+        }
+    }
+    if (!ditemukan) cout << "Pelanggan dengan ID " << id << " tidak ditemukan.\n";
+}
+
+// Fungsi update data pelanggan berdasarkan ID
+void updatePelanggan() {
+    string id;
+    cout << "Masukkan ID Pelanggan yang ingin diupdate: ";
+    cin >> id;
+
+    bool ditemukan = false;
+    for (int i = 0; i < jumlahPelanggan; i++) {
+        if (daftarPelanggan[i].id == id) {
+            cout << "Data ditemukan. Masukkan data baru.\n";
+
+            cout << "Nama: ";
+            cin >> daftarPelanggan[i].nama;
+
+            cout << "ID Komputer: ";
+            cin >> daftarPelanggan[i].idKomputer;
+
+            // Input ulang waktu dengan validasi
+            inputWaktu(daftarPelanggan[i].jamMasuk, daftarPelanggan[i].menitMasuk, "Jam Masuk");
+            inputWaktu(daftarPelanggan[i].jamKeluar, daftarPelanggan[i].menitKeluar, "Jam Keluar");
+
+            // Hitung ulang durasi dan biaya
+            daftarPelanggan[i].durasiMenit = hitungDurasiMenit(
+                daftarPelanggan[i].jamMasuk, daftarPelanggan[i].menitMasuk,
+                daftarPelanggan[i].jamKeluar, daftarPelanggan[i].menitKeluar);
+
+            daftarPelanggan[i].biaya = hitungBiaya(daftarPelanggan[i].durasiMenit);
+
+            cout << "Data berhasil diperbarui.\n";
+            ditemukan = true;
+            break;
+        }
+    }
+
+    if (!ditemukan) {
+        cout << "Pelanggan dengan ID " << id << " tidak ditemukan.\n";
+    }
+
+    // Simpan data setelah update
+    simpanFile();
+}
+
+// Fungsi menghapus data pelanggan berdasarkan ID
+void hapusPelanggan() {
+    string id;
+    cout << "Masukkan ID Pelanggan yang ingin dihapus: ";
+    cin >> id;
+    bool ditemukan = false;
+    for (int i = 0; i < jumlahPelanggan; i++) {
+        if (daftarPelanggan[i].id == id) {
+            // Geser data pelanggan setelah indeks i ke kiri untuk hapus data
+            for (int j = i; j < jumlahPelanggan - 1; j++) {
+                daftarPelanggan[j] = daftarPelanggan[j + 1];
+            }
+            jumlahPelanggan--;
+            cout << "Data berhasil dihapus.\n";
+            ditemukan = true;
+            break;
+        }
+    }
+    if (!ditemukan) {
+        cout << "Pelanggan dengan ID " << id << " tidak ditemukan.\n";
+    }
+    // Simpan data setelah penghapusan
+    simpanFile();
+}
+
+// Fungsi mengurutkan data pelanggan berdasarkan biaya atau durasi
+void urutkanPelanggan() {
+    if (jumlahPelanggan == 0) {
+        cout << "Belum ada data pelanggan.\n";
+        return;
+    }
+
+    int kategori, urutan;
+    cout << "\nUrutkan berdasarkan:\n";
+    cout << "1. Biaya\n";
+    cout << "2. Durasi\n";
+    cout << "Pilihan Anda: ";
+    cin >> kategori;
+
+    cout << "Urutan:\n";
+    cout << "1. Terbesar ke terkecil\n";
+    cout << "2. Terkecil ke terbesar\n";
+    cout << "Pilihan Anda: ";
+    cin >> urutan;
+
+    // Bubble sort berdasarkan pilihan kategori dan urutan
+    for (int i = 0; i < jumlahPelanggan - 1; i++) {
+        for (int j = 0; j < jumlahPelanggan - i - 1; j++) {
+            bool tukar = false;
+
+            if (kategori == 1) { // berdasarkan biaya
+                if (urutan == 1 && daftarPelanggan[j].biaya < daftarPelanggan[j + 1].biaya)
+                    tukar = true;
+                else if (urutan == 2 && daftarPelanggan[j].biaya > daftarPelanggan[j + 1].biaya)
+                    tukar = true;
+            }
+            else if (kategori == 2) { // berdasarkan durasi
+                if (urutan == 1 && daftarPelanggan[j].durasiMenit < daftarPelanggan[j + 1].durasiMenit)
+                    tukar = true;
+                else if (urutan == 2 && daftarPelanggan[j].durasiMenit > daftarPelanggan[j + 1].durasiMenit)
+                    tukar = true;
+            }
+
+            if (tukar)
+                swap(daftarPelanggan[j], daftarPelanggan[j + 1]);
+        }
+    }
+
+    cout << "Data berhasil diurutkan.\n";
+    tampilkanPelanggan();
+}
+
+int main() {
+    while (true) {
+        // Proses login admin, jika gagal maka ulangi terus
+        if (!login()) {
+            cout << "Login gagal.\n";
+            return 0;
+        }
+
+        // Baca data pelanggan dari file saat berhasil login
+        bacaFile();
+
+        int menu;
+        string idcari;
+
+        do {
+            // Menu utama aplikasi
+            cout << "\n--- MENU ---\n";
+            cout << "1. Tambah Pelanggan\n";
+            cout << "2. Tampilkan Data\n";
+            cout << "3. Cari Pelanggan (ID)\n";
+            cout << "4. Update Pelanggan\n";
+            cout << "5. Hapus Pelanggan\n";
+            cout << "6. Urutkan Pelanggan\n";
+            cout << "0. Logout\n";
+            cout << "Pilih Menu : ";
+            cin >> menu;
+
+            switch (menu) {
+                case 1: tambahPelanggan(); 
+                break;
+                case 2: tampilkanPelanggan(); 
+                break;
+                case 3:
+                    cout << "Masukkan ID: "; cin >> idcari;
+                    cariPelangganID(idcari);
+                break;
+                case 4: updatePelanggan(); 
+                break;
+                case 5: hapusPelanggan(); 
+                break;
+                case 6: urutkanPelanggan(); 
+                break;
+                case 0:
+                    cout << "Logout berhasil. Kembali ke Login\n";
+                break;
+                default:
+                    cout << "Pilihan tidak valid.\n";
+                break;
+            }
+        } while (menu != 0);
+    }
+
+    return 0;
+}
