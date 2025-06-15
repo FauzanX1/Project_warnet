@@ -3,6 +3,8 @@
 #include <fstream>
 #include <iomanip>
 #include <algorithm>
+#include <functional>
+
 using namespace std;
 
 // Konstanta dan variabel global
@@ -121,6 +123,7 @@ int hitungBiaya(int durasiMenit, int tarifPerJam = tarif_per_jam) {
 
 // Fungsi menambah data pelanggan baru
 void tambahPelanggan() {
+    system("cls");
     if (jumlahPelanggan >= max_pelanggan) {
         cout << "Data pelanggan penuh.\n";
         return;
@@ -154,6 +157,7 @@ void tambahPelanggan() {
 
 // Fungsi menampilkan seluruh data pelanggan dalam tabel
 void tampilkanPelanggan() {
+    system("cls");
     if (jumlahPelanggan == 0) {
         cout << "Belum ada data pelanggan.\n";
         return;
@@ -181,6 +185,7 @@ void tampilkanPelanggan() {
 
 // Fungsi mencari pelanggan berdasarkan ID
 void cariPelangganID(string id) {
+    system("cls");
     bool ditemukan = false;
     for (int i = 0; i < jumlahPelanggan; i++) {
         if (daftarPelanggan[i].id == id) {
@@ -194,6 +199,7 @@ void cariPelangganID(string id) {
 
 // Fungsi update data pelanggan berdasarkan ID
 void updatePelanggan() {
+    system("cls");
     string id;
     cout << "Masukkan ID Pelanggan yang ingin diupdate: ";
     cin >> id;
@@ -236,6 +242,7 @@ void updatePelanggan() {
 
 // Fungsi menghapus data pelanggan berdasarkan ID
 void hapusPelanggan() {
+    system("cls");
     string id;
     cout << "Masukkan ID Pelanggan yang ingin dihapus: ";
     cin >> id;
@@ -259,8 +266,71 @@ void hapusPelanggan() {
     simpanFile();
 }
 
+void quickSort(pelanggan daftarPelanggan[], int low, int high, int kategori, int urutan) {
+    if (low < high) {
+        int i = low;
+        int j = high;
+        pelanggan pivot = daftarPelanggan[(low + high) / 2];
+
+        while (i <= j) {
+            // Proses i++
+            while (true) {
+                bool kondisi = false;
+                if (kategori == 1) {
+                    if (urutan == 1 && daftarPelanggan[i].biaya > pivot.biaya)
+                        kondisi = true;
+                    else if (urutan == 2 && daftarPelanggan[i].biaya < pivot.biaya)
+                        kondisi = true;
+                } else if (kategori == 2) {
+                    if (urutan == 1 && daftarPelanggan[i].durasiMenit > pivot.durasiMenit)
+                        kondisi = true;
+                    else if (urutan == 2 && daftarPelanggan[i].durasiMenit < pivot.durasiMenit)
+                        kondisi = true;
+                }
+                if (kondisi)
+                    i++;
+                else
+                    break;
+            }
+
+            // Proses j--
+            while (true) {
+                bool kondisi = false;
+                if (kategori == 1) {
+                    if (urutan == 1 && daftarPelanggan[j].biaya < pivot.biaya)
+                        kondisi = true;
+                    else if (urutan == 2 && daftarPelanggan[j].biaya > pivot.biaya)
+                        kondisi = true;
+                } else if (kategori == 2) {
+                    if (urutan == 1 && daftarPelanggan[j].durasiMenit < pivot.durasiMenit)
+                        kondisi = true;
+                    else if (urutan == 2 && daftarPelanggan[j].durasiMenit > pivot.durasiMenit)
+                        kondisi = true;
+                }
+                if (kondisi)
+                    j--;
+                else
+                    break;
+            }
+
+            // Tukar jika perlu
+            if (i <= j) {
+                swap(daftarPelanggan[i], daftarPelanggan[j]);
+                i++;
+                j--;
+            }
+        }
+
+        if (low < j)
+            quickSort(daftarPelanggan, low, j, kategori, urutan);
+        if (i < high)
+            quickSort(daftarPelanggan, i, high, kategori, urutan);
+    }
+}
+
 // Fungsi mengurutkan data pelanggan berdasarkan biaya atau durasi
 void urutkanPelanggan() {
+    system("cls");
     if (jumlahPelanggan == 0) {
         cout << "Belum ada data pelanggan.\n";
         return;
@@ -279,35 +349,72 @@ void urutkanPelanggan() {
     cout << "Pilihan Anda: ";
     cin >> urutan;
 
-    // Bubble sort berdasarkan pilihan kategori dan urutan
-    for (int i = 0; i < jumlahPelanggan - 1; i++) {
-        for (int j = 0; j < jumlahPelanggan - i - 1; j++) {
-            bool tukar = false;
+   
+    // Fungsi Quick Sort langsung ditanam di sini
+    // Quick Sort versi inline
+    function<void(int, int)> quickSort = [&](int low, int high) {
+        if (low < high) {
+            int i = low;
+            int j = high;
+            pelanggan pivot = daftarPelanggan[(low + high) / 2];
 
-            if (kategori == 1) { // berdasarkan biaya
-                if (urutan == 1 && daftarPelanggan[j].biaya < daftarPelanggan[j + 1].biaya)
-                    tukar = true;
-                else if (urutan == 2 && daftarPelanggan[j].biaya > daftarPelanggan[j + 1].biaya)
-                    tukar = true;
-            }
-            else if (kategori == 2) { // berdasarkan durasi
-                if (urutan == 1 && daftarPelanggan[j].durasiMenit < daftarPelanggan[j + 1].durasiMenit)
-                    tukar = true;
-                else if (urutan == 2 && daftarPelanggan[j].durasiMenit > daftarPelanggan[j + 1].durasiMenit)
-                    tukar = true;
+            while (i <= j) {
+                while (true) {
+                    bool kondisi = false;
+                    if (kategori == 1) {
+                        if (urutan == 1 && daftarPelanggan[i].biaya > pivot.biaya)
+                            kondisi = true;
+                        else if (urutan == 2 && daftarPelanggan[i].biaya < pivot.biaya)
+                            kondisi = true;
+                    } else if (kategori == 2) {
+                        if (urutan == 1 && daftarPelanggan[i].durasiMenit > pivot.durasiMenit)
+                            kondisi = true;
+                        else if (urutan == 2 && daftarPelanggan[i].durasiMenit < pivot.durasiMenit)
+                            kondisi = true;
+                    }
+                    if (kondisi) i++;
+                    else break;
+                }
+
+                while (true) {
+                    bool kondisi = false;
+                    if (kategori == 1) {
+                        if (urutan == 1 && daftarPelanggan[j].biaya < pivot.biaya)
+                            kondisi = true;
+                        else if (urutan == 2 && daftarPelanggan[j].biaya > pivot.biaya)
+                            kondisi = true;
+                    } else if (kategori == 2) {
+                        if (urutan == 1 && daftarPelanggan[j].durasiMenit < pivot.durasiMenit)
+                            kondisi = true;
+                        else if (urutan == 2 && daftarPelanggan[j].durasiMenit > pivot.durasiMenit)
+                            kondisi = true;
+                    }
+                    if (kondisi) j--;
+                    else break;
+                }
+
+                if (i <= j) {
+                    swap(daftarPelanggan[i], daftarPelanggan[j]);
+                    i++;
+                    j--;
+                }
             }
 
-            if (tukar)
-                swap(daftarPelanggan[j], daftarPelanggan[j + 1]);
+            if (low < j) quickSort(low, j);
+            if (i < high) quickSort(i, high);
         }
-    }
+    };
+
+    quickSort(0, jumlahPelanggan - 1);
 
     cout << "Data berhasil diurutkan.\n";
     tampilkanPelanggan();
 }
 
+
 int main() {
     while (true) {
+        system("cls");
         // Proses login admin, jika gagal maka ulangi terus
         if (!login()) {
             cout << "Login gagal.\n";
@@ -349,14 +456,14 @@ int main() {
                 case 6: urutkanPelanggan(); 
                 break;
                 case 0:
-                    cout << "Logout berhasil. Kembali ke Login\n";
+                    cout << "Logout berhasil. Kembali ke login.\n";
                 break;
                 default:
                     cout << "Pilihan tidak valid.\n";
                 break;
-            }
+            } 
         } while (menu != 0);
     }
-
     return 0;
+    system("cls");
 }
